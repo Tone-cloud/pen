@@ -29,9 +29,12 @@ jobs:
 
       - name: Check libs
         run: |
-          ls -la dictpen-libs/
-          ls -la dictpen-libs/lib/ || echo "lib subdir not found"
-          ls -la dictpen-libs/*GLES* || echo "GLES libs not found"
+          echo "Contents of dictpen-libs:"
+          ls -la dictpen-libs/ || echo "dictpen-libs dir not found"
+          echo "Contents of dictpen-libs/lib if exists:"
+          ls -la dictpen-libs/lib/ 2>/dev/null || echo "lib subdir not found"
+          echo "Searching for GLES libs:"
+          find dictpen-libs -name "*GLES*" -o -name "*EGL*" -o -name "*mali*" 2>/dev/null || echo "No GLES/EGL/mali libs found"
 
       - name: Set up environment
         run: |
