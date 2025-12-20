@@ -1,0 +1,50 @@
+name: Build and Upload artifact
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y build-essential git-lfs
+
+      - name: Checkout main repository
+        uses: actions/checkout@v4
+
+      - name: Clone Qt repository
+        run: git clone https://github.com/Lyrecoul/qt-5.15.2-for-aarch64-dictpen-linux.git
+
+      - name: Clone GCC repository
+        run: git clone https://github.com/Lyrecoul/aarch64-dictpen-linux-gnu-gcc-toolchain.git
+
+      - name: Clone Dictpen libs repository
+        run: git clone https://github.com/Lyrecoul/dictpen-libs.git
+
+      - name: Set up environment
+        run: |
+          echo "$PWD/qt-5.15.2-for-aarch64-dictpen-linux/bin" >> $GITHUB_PATH
+          echo "$PWD/aarch64-dictpen-linux-gnu-gcc-toolchain/bin" >> $GITHUB_PATH
+
+      - name: Build with qmake
+        run: |
+          git lfs install
+          git lfs pull
+          ./qt-5.15.2-for-aarch64-dictpen-linux/bin/qmake Calculator.pro
+          make -j$(nproc)
+
+      - name: Strip debug symbols
+        run: |
+          aarch64-dictpen-linux-gnu-strip Calculator || true
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: Calculator
+          path: Calculator
