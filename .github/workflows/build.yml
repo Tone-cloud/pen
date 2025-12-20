@@ -27,6 +27,12 @@ jobs:
       - name: Clone Dictpen libs repository
         run: git clone https://github.com/Lyrecoul/dictpen-libs.git
 
+      - name: Check libs
+        run: |
+          ls -la dictpen-libs/
+          ls -la dictpen-libs/lib/ || echo "lib subdir not found"
+          ls -la dictpen-libs/*GLES* || echo "GLES libs not found"
+
       - name: Set up environment
         run: |
           echo "$PWD/qt-5.15.2-for-aarch64-dictpen-linux/bin" >> $GITHUB_PATH
