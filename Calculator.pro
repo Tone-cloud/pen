@@ -11,7 +11,7 @@ SOURCES += main.cpp \
 HEADERS += mainwindow.h
 
 # Add paths for dictpen-libs to fix linking errors for GLESv2, EGL, mali
-LIBS += -L$$PWD/../dictpen-libs/lib -lGLESv2 -lEGL -lmali
+LIBS += -L$$PWD/../dictpen-libs -lGLESv2 -lEGL -lmali
 INCLUDEPATH += $$PWD/../dictpen-libs/include
 
 # Notes for cross-compiling to aarch64 (example):
