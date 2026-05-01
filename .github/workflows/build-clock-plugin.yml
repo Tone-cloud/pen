@@ -1,0 +1,88 @@
+name: Build Clock Plugin ARM64
+
+on:
+  push:
+    branches: [ main, master ]
+  pull_request:
+    branches: [ main, master ]
+  workflow_dispatch:
+    inputs:
+      build_mode:
+        description: "Build mode"
+        required: true
+        default: "Release"
+        type: choice
+        options:
+          - Release
+          - Debug
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    container:
+      image: archlinux:latest
+    env:
+      GCC_BASE_URL: https://github.com/Redbeanw44602/aarch64-linux-gnu-gcc-6.5.0/releases/download/6.5.0
+      QT_DIR: ${{ github.workspace }}/qt-aarch64
+      BUILD_MODE: ${{ github.event.inputs.build_mode || 'Release' }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install dependencies
+        run: |
+          pacman -Syu --noconfirm
+          pacman -S --noconfirm \
+            base-devel git wget curl cmake ninja python3 qt5-base qt5-tools
+
+      - name: Install aarch64 toolchain (glibc 2.27)
+        run: |
+          wget -q "${{ env.GCC_BASE_URL }}/aarch64-linux-gnu-binutils-2.30-1-x86_64.pkg.tar.zst"
+          wget -q "${{ env.GCC_BASE_URL }}/aarch64-linux-gnu-glibc-2.27-1-any.pkg.tar.zst"
+          wget -q "${{ env.GCC_BASE_URL }}/aarch64-linux-gnu-gcc-6.5.0-1-x86_64.pkg.tar.zst"
+          pacman -U --noconfirm \
+            aarch64-linux-gnu-binutils-2.30-1-x86_64.pkg.tar.zst \
+            aarch64-linux-gnu-glibc-2.27-1-any.pkg.tar.zst \
+            aarch64-linux-gnu-gcc-6.5.0-1-x86_64.pkg.tar.zst
+          aarch64-linux-gnu-g++ --version
+
+      - name: Cache Qt aarch64
+        id: cache-qt
+        uses: actions/cache@v4
+        with:
+          path: ${{ env.QT_DIR }}
+          key: qt-aarch64-5.15.2
+
+      - name: Download Qt 5.15.2 aarch64
+        if: steps.cache-qt.outputs.cache-hit != 'true'
+        run: |
+          wget -q \
+            https://github.com/Redbeanw44602/aarch64-linux-qt-5.15.2/releases/latest/download/aarch64-linux-qt-5.15.2.tar.gz \
+            -O /tmp/qt.tar.gz
+          mkdir -p "${{ env.QT_DIR }}"
+          tar -xzf /tmp/qt.tar.gz -C "${{ env.QT_DIR }}"
+
+      - name: Configure (cross compile)
+        run: |
+          cmake -S . -B build -G Ninja \
+            -DCMAKE_BUILD_TYPE=${{ env.BUILD_MODE }} \
+            -DCMAKE_TOOLCHAIN_FILE=cmake/toolchain-aarch64-linux-gnu.cmake \
+            -DCMAKE_PREFIX_PATH="${{ env.QT_DIR }}" \
+            -DQT_ROOT="${{ env.QT_DIR }}"
+
+      - name: Build
+        run: cmake --build build --config ${{ env.BUILD_MODE }}
+
+      - name: Verify output
+        run: |
+          test -f build/libclock_plugin.so
+          file build/libclock_plugin.so
+          ls -lh build/libclock_plugin.so
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: clock-plugin-arm64-so-${{ github.sha }}
+          path: build/libclock_plugin.so
+          retention-days: 7

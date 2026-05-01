@@ -1,0 +1,2 @@
+module MyPlugins.Clock
+plugin clock_plugin
